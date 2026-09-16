@@ -48,8 +48,15 @@ async function createIncident(req, res) {
       [req.user.tenantId, OPERATION, key]
     );
 
+    // An existing key is immutable: replay, reject, or wait; never execute it twice.
     if (!claimed && record.request_hash !== requestHash) {
-      return { status: 409, body: { error: 'idempotency_key_conflict' } };
+      return {
+        status: 409,
+        body: {
+          error: 'idempotency_key_conflict',
+          message: 'Idempotency-Key is already bound to a different request'
+        }
+      };
     }
     if (!claimed && record.state === 'completed') {
       return { status: record.response_code, body: record.response_body, replayed: true };
