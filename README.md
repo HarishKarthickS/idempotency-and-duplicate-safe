@@ -79,6 +79,8 @@ Each key moves through a small state machine:
 
 Before any state decision, the request hash is compared with the stored hash. A different body receives `409 idempotency_key_conflict`, including when the existing record is completed, processing, or failed. An expired record can be atomically replaced by a new processing claim, which starts a new 24-hour retention window.
 
+All idempotency rejection responses use HTTP `409` with a stable `error` code and explanatory `message`: `idempotency_key_conflict`, `operation_in_progress`, or `prior_operation_failed`. Clients can branch on `error` while presenting `message` to operators without parsing free-form text.
+
 The regression coverage also exercises concurrent contenders, tenant isolation, replay after a lost response, rollback, and special JSON keys such as `__proto__`. These cases protect the serialization point and the complete-body hash contract without changing the supplied test file.
 
 ## What to Implement

@@ -64,10 +64,22 @@ async function createIncident(req, res) {
       return { status: record.response_code, body: record.response_body, replayed: true };
     }
     if (!claimed && record.state === 'processing') {
-      return { status: 409, body: { error: 'operation_in_progress' } };
+      return {
+        status: 409,
+        body: {
+          error: 'operation_in_progress',
+          message: 'The idempotent operation is already being processed'
+        }
+      };
     }
     if (!claimed && record.state === 'failed') {
-      return { status: 409, body: { error: 'prior_operation_failed' } };
+      return {
+        status: 409,
+        body: {
+          error: 'prior_operation_failed',
+          message: 'The idempotent operation previously failed and will not be retried automatically'
+        }
+      };
     }
 
     const incident = await t.one(
