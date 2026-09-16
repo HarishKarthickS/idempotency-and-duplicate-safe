@@ -26,6 +26,8 @@ async function createIncident(req, res) {
   const { title, severity, serviceId } = req.body;
   const requestHash = hashRequest(req.body);
   const result = await db.tx(async t => {
+    // The unique constraint serializes contenders. An expired row is the only
+    // existing key that may be replaced; all local effects stay in this tx.
     const claimed = await t.oneOrNone(
       `INSERT INTO idempotency_keys
          (tenant_id, operation, key, request_hash, state, expires_at)

@@ -9,8 +9,6 @@ CREATE TABLE incidents (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- TODO: add idempotency_keys table
--- TODO: add paging_jobs table
 CREATE TABLE idempotency_keys (
   tenant_id     UUID NOT NULL,
   operation     TEXT NOT NULL,
