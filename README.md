@@ -61,6 +61,28 @@ npm test
 
 Starter tests fail until required schema and handler are implemented. This is expected.
 
+## Design Decisions
+
+- Database uniqueness on `(tenant_id, operation, key)` is the serialization point for sequential and concurrent requests. The claim and all local writes run in one PostgreSQL transaction.
+- The complete JSON request body is canonicalized by recursively sorting object keys, while preserving array order, and hashed with SHA-256. The stored hash binds a key to the request contents without storing the request itself.
+- A claimed key expires after 24 hours. Before claiming, an expired record may be replaced atomically; an unexpired record remains authoritative for replay or conflict handling.
+- The incident and its pending paging job are inserted in the same transaction, so a committed incident always has exactly one durable local job and a rollback leaves neither effect.
+- Stored replay bodies are limited to the response needed by this endpoint, but response data can still contain sensitive information and consumes database space. Production systems should apply retention, size limits, and access controls.
+
+### Idempotency State and Replay
+
+Each key moves through a small state machine:
+
+- `processing` is written by the transaction that wins the unique key claim. Another request with the same tenant, operation, and key receives `409 operation_in_progress` and does not execute the write.
+- `completed` is written only after the incident, paging job, and response body have all been written successfully. A later request with the same request hash returns the stored `201` response and the `Idempotent-Replayed: true` header. Replay is successful, not an error, and it does not create another incident or paging job.
+- `failed` represents a durable, terminal failure recorded by a caller or recovery process. A matching retry returns `409 prior_operation_failed`; it must not silently execute the operation again. The endpoint does not mark ordinary database exceptions as `failed`: those exceptions roll back the key claim and all local writes, allowing a later retry to claim the key safely.
+
+Before any state decision, the request hash is compared with the stored hash. A different body receives `409 idempotency_key_conflict`, including when the existing record is completed, processing, or failed. An expired record can be atomically replaced by a new processing claim, which starts a new 24-hour retention window.
+
+All idempotency rejection responses use HTTP `409` with a stable `error` code and explanatory `message`: `idempotency_key_conflict`, `operation_in_progress`, or `prior_operation_failed`. Clients can branch on `error` while presenting `message` to operators without parsing free-form text.
+
+The regression coverage also exercises concurrent contenders, tenant isolation, replay after a lost response, rollback, and special JSON keys such as `__proto__`. These cases protect the serialization point and the complete-body hash contract without changing the supplied test file.
+
 ## What to Implement
 
 ### Database
