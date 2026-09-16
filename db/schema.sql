@@ -9,21 +9,5 @@ CREATE TABLE incidents (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE idempotency_keys (
-  tenant_id     UUID NOT NULL,
-  operation     TEXT NOT NULL,
-  key           TEXT NOT NULL,
-  request_hash  TEXT NOT NULL,
-  state         TEXT NOT NULL CHECK (state IN ('processing', 'completed', 'failed')),
-  response_code INTEGER,
-  response_body JSONB,
-  expires_at    TIMESTAMPTZ NOT NULL,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  PRIMARY KEY (tenant_id, operation, key)
-);
-
-CREATE TABLE paging_jobs (
-  incident_id UUID PRIMARY KEY REFERENCES incidents(id) ON DELETE CASCADE,
-  status      TEXT NOT NULL DEFAULT 'pending',
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-);
+-- TODO: add idempotency_keys table
+-- TODO: add paging_jobs table

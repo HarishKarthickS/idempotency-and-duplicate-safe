@@ -61,14 +61,6 @@ npm test
 
 Starter tests fail until required schema and handler are implemented. This is expected.
 
-## Design Decisions
-
-- Database uniqueness on `(tenant_id, operation, key)` is the serialization point for sequential and concurrent requests. The claim and all local writes run in one PostgreSQL transaction.
-- The complete JSON request body is canonicalized by recursively sorting object keys, while preserving array order, and hashed with SHA-256. The stored hash binds a key to the request contents without storing the request itself.
-- A claimed key expires after 24 hours. Before claiming, an expired record may be replaced atomically; an unexpired record remains authoritative for replay or conflict handling.
-- The incident and its pending paging job are inserted in the same transaction, so a committed incident always has exactly one durable local job and a rollback leaves neither effect.
-- Stored replay bodies are limited to the response needed by this endpoint, but response data can still contain sensitive information and consumes database space. Production systems should apply retention, size limits, and access controls.
-
 ## What to Implement
 
 ### Database
