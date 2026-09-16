@@ -74,7 +74,7 @@ Starter tests fail until required schema and handler are implemented. This is ex
 Each key moves through a small state machine:
 
 - `processing` is written by the transaction that wins the unique key claim. Another request with the same tenant, operation, and key receives `409 operation_in_progress` and does not execute the write.
-- `completed` is written only after the incident, paging job, and response body have all been written successfully. A later request with the same request hash returns the stored `201` response and the `Idempotent-Replayed: true` header. It does not create another incident or paging job.
+- `completed` is written only after the incident, paging job, and response body have all been written successfully. A later request with the same request hash returns the stored `201` response and the `Idempotent-Replayed: true` header. Replay is successful, not an error, and it does not create another incident or paging job.
 - `failed` represents a durable, terminal failure recorded by a caller or recovery process. A matching retry returns `409 prior_operation_failed`; it must not silently execute the operation again. The endpoint does not mark ordinary database exceptions as `failed`: those exceptions roll back the key claim and all local writes, allowing a later retry to claim the key safely.
 
 Before any state decision, the request hash is compared with the stored hash. A different body receives `409 idempotency_key_conflict`, including when the existing record is completed, processing, or failed. An expired record can be atomically replaced by a new processing claim, which starts a new 24-hour retention window.

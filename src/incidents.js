@@ -61,6 +61,7 @@ async function createIncident(req, res) {
       };
     }
     if (!claimed && record.state === 'completed') {
+      // A replay is a successful response with the original status/body, not an error.
       return { status: record.response_code, body: record.response_body, replayed: true };
     }
     if (!claimed && record.state === 'processing') {
